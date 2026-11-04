@@ -1,0 +1,62 @@
+[mod]
+id = "rexy_sorter"
+version = "1.0.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "07b7ea30d02973e7bc7579ea1e914dac2a9eca01"
+
+# Pure sort logic (also tested as a standalone Cargo lib).
+[[module]]
+id = "logic"
+file = "crates/horizon-client/src/game/mods.rs"
+name = "rexy_sorter_logic"
+source = "sorter.rs"
+
+# Config: <game folder>/horizon-mods/.horizon-mod-data/rexy_sorter/config.json
+[[module]]
+id = "config"
+file = "crates/horizon-client/src/game/mods.rs"
+name = "rexy_sorter_config"
+source = "config.rs"
+
+# Profile per world.
+[[module]]
+id = "profile"
+file = "crates/horizon-client/src/game/mods.rs"
+name = "rexy_sorter_profile"
+source = "profile.rs"
+
+# Options > Mods: the row and its settings page.
+[[module]]
+id = "ui"
+file = "crates/horizon-client/src/game/mods.rs"
+name = "rexy_sorter_ui"
+source = "ui.rs"
+
+[[injection]]
+id = "mods-row"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+kind = "HEAD"
+helper = "ui_mods.rs"
+bindings = [{ name = "mods", ty = "&mut Vec<NativeMod>", value = "mods" }]
+
+[[injection]]
+id = "mods-settings"
+target = "horizon_client::game::native_hooks::Game<'_>::native_settings"
+kind = "HEAD"
+helper = "ui_settings.rs"
+bindings = [
+  { name = "mod_id", ty = "&str", value = "mod_id" },
+  { name = "buttons", ty = "&mut Vec<String>", value = "buttons" },
+]
+
+[[injection]]
+id = "mods-click"
+target = "horizon_client::game::native_hooks::Game<'_>::native_settings_click"
+kind = "HEAD"
+helper = "ui_click.rs"
+bindings = [
+  { name = "mod_id", ty = "&str", value = "mod_id" },
+  { name = "button", ty = "usize", value = "button" },
+]

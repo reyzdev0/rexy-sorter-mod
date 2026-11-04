@@ -1,2 +1,2 @@
 target/
-*.so
+Cargo.lock

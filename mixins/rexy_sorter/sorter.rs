@@ -1,19 +1,45 @@
-//! Logika sort: Alphabetical, Category, Custom + merge stack + auto refill
-use crate::config::SortMode;
-use serde::{Deserialize, Serialize};
+// Pure sort logic: Alphabetical, Category, Custom, stack merge, auto refill.
+// Free of the game, so it is unit tested on its own.
 use std::cmp::Ordering;
 
 pub const HOTBAR: usize = 9;
 
-fn d64() -> u32 {
-    64
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SortMode {
+    #[default]
+    Alphabetical,
+    Category,
+    Custom,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+impl SortMode {
+    pub fn next(self) -> Self {
+        match self {
+            SortMode::Alphabetical => SortMode::Category,
+            SortMode::Category => SortMode::Custom,
+            SortMode::Custom => SortMode::Alphabetical,
+        }
+    }
+    pub fn name(self) -> &'static str {
+        match self {
+            SortMode::Alphabetical => "Alphabetical",
+            SortMode::Category => "Category",
+            SortMode::Custom => "Custom",
+        }
+    }
+    pub fn from_name(s: &str) -> Self {
+        match s {
+            "Category" => SortMode::Category,
+            "Custom" => SortMode::Custom,
+            _ => SortMode::Alphabetical,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Item {
     pub id: String,
     pub count: u32,
-    #[serde(default = "d64")]
     pub max: u32,
 }
 
@@ -73,7 +99,7 @@ fn merge(items: Vec<Item>) -> Vec<Item> {
     out
 }
 
-/// Sort slot mulai dari `start` (9 = lewati hotbar). Slot terkunci tidak disentuh.
+/// Sort slots from `start` (HOTBAR = skip the hotbar). Locked slots stay put.
 pub fn sort(slots: &mut Slots, mode: SortMode, locked: &[usize], custom: &[String], start: usize) {
     let free: Vec<usize> = (start..slots.len()).filter(|i| !locked.contains(i)).collect();
     let taken: Vec<Item> = free.iter().filter_map(|&i| slots[i].take()).collect();
@@ -84,7 +110,7 @@ pub fn sort(slots: &mut Slots, mode: SortMode, locked: &[usize], custom: &[Strin
     }
 }
 
-/// Auto refill: isi slot hotbar kosong dengan item sama dari inventory utama.
+/// Auto refill: an empty hotbar slot takes the same item from the main inventory.
 pub fn refill(slots: &mut Slots, slot: usize, id: &str) -> bool {
     if slot >= HOTBAR || slots.get(slot).map_or(true, |s| s.is_some()) {
         return false;
@@ -96,20 +122,5 @@ pub fn refill(slots: &mut Slots, slot: usize, id: &str) -> bool {
             true
         }
         None => false,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    fn it(id: &str, c: u32) -> Option<Item> {
-        Some(Item { id: id.into(), count: c, max: 64 })
-    }
-    #[test]
-    fn sorts_merges_and_respects_lock() {
-        let mut s = vec![it("dirt", 40), it("apple", 5), None, it("dirt", 40), it("bread", 1)];
-        sort(&mut s, SortMode::Alphabetical, &[1], &[], 0);
-        assert_eq!(s[1], it("apple", 5));
-        assert_eq!(s[0].as_ref().unwrap().id, "bread");
     }
 }
